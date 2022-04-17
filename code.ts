@@ -8,6 +8,10 @@
 // This shows the HTML page in "ui.html".
 figma.showUI(__html__);
 
+interface colorInfo {
+  name: string;
+  color: RGB;
+}
 // Calls to "parent.postMessage" from within the HTML page will trigger this
 // callback. The callback will be passed the "pluginMessage" property of the
 // posted message.
@@ -27,7 +31,40 @@ figma.ui.onmessage = msg => {
     figma.viewport.scrollAndZoomIntoView(nodes);
   }
 
+  if (msg.type === 'import-color-styles'){
+    const colorStyles:colorInfo[] = [];
+    const obj = JSON.parse(msg.colorTexts, function(key, value){
+      const newColorStyle = {
+        name: key,
+        color: hexToRgb(value)
+      }
+      if (newColorStyle.name && newColorStyle.color){
+        colorStyles.push(newColorStyle)
+      }
+    })
+    console.log(colorStyles)
+    
+    colorStyles.forEach(color => CreateColorStyle(color))
+    figma.notify(colorStyles.length + " colors have been added successfully!")
+  }
+
   // Make sure to close the plugin when you're done. Otherwise the plugin will
   // keep running, which shows the cancel button at the bottom of the screen.
   figma.closePlugin();
 };
+
+function CreateColorStyle(colorStyle:colorInfo){
+  const style = figma.createPaintStyle();
+  style.name = colorStyle.name;
+  const paints:Paint[] = [{type: "SOLID", color: colorStyle.color}];
+  style.paints = paints;
+}
+
+function hexToRgb(hex) {
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16)/255,
+    g: parseInt(result[2], 16)/255,
+    b: parseInt(result[3], 16)/255
+  } : null;
+}
